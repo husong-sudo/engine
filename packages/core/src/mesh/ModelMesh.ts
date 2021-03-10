@@ -613,32 +613,31 @@ export class ModelMesh extends Mesh {
     return vertexElements;
   }
 
-  private _resetVertexArrayData(_verticesArray: Float32Array) {
+  private _resetVertexArrayData(vertices: Float32Array): void {
     // prettier-ignore
-    const { _vertexCount, _positions, _normals, _colors, _vertexChangeFlag: _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    const elementCount = this._elementCount;
+    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
-    if (_valueChanged & ValueChanged.Position) {
+    if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
-        const start = elementCount * i;
+        const start = _elementCount * i;
         const position = _positions[i];
-        _verticesArray[start] = position.x;
-        _verticesArray[start + 1] = position.y;
-        _verticesArray[start + 2] = position.z;
+        vertices[start] = position.x;
+        vertices[start + 1] = position.y;
+        vertices[start + 2] = position.z;
       }
     }
 
     let offset = 3;
 
     if (_normals) {
-      if (_valueChanged & ValueChanged.Normal) {
+      if (_vertexChangeFlag & ValueChanged.Normal) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const normal = _normals[i];
           if (normal) {
-            _verticesArray[start] = normal.x;
-            _verticesArray[start + 1] = normal.y;
-            _verticesArray[start + 2] = normal.z;
+            vertices[start] = normal.x;
+            vertices[start + 1] = normal.y;
+            vertices[start + 2] = normal.z;
           }
         }
       }
@@ -646,15 +645,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_colors) {
-      if (_valueChanged & ValueChanged.Color) {
+      if (_vertexChangeFlag & ValueChanged.Color) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const color = _colors[i];
           if (color) {
-            _verticesArray[start] = color.r;
-            _verticesArray[start + 1] = color.g;
-            _verticesArray[start + 2] = color.b;
-            _verticesArray[start + 3] = color.a;
+            vertices[start] = color.r;
+            vertices[start + 1] = color.g;
+            vertices[start + 2] = color.b;
+            vertices[start + 3] = color.a;
           }
         }
       }
@@ -662,15 +661,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_weights) {
-      if (_valueChanged & ValueChanged.Weight) {
+      if (_vertexChangeFlag & ValueChanged.Weight) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const weight = _weights[i];
           if (weight) {
-            _verticesArray[start] = weight.x;
-            _verticesArray[start + 1] = weight.y;
-            _verticesArray[start + 2] = weight.z;
-            _verticesArray[start + 3] = weight.w;
+            vertices[start] = weight.x;
+            vertices[start + 1] = weight.y;
+            vertices[start + 2] = weight.z;
+            vertices[start + 3] = weight.w;
           }
         }
       }
@@ -678,15 +677,15 @@ export class ModelMesh extends Mesh {
     }
 
     if (_joints) {
-      if (_valueChanged & ValueChanged.Joint) {
+      if (_vertexChangeFlag & ValueChanged.Joint) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const joint = _joints[i];
           if (joint) {
-            _verticesArray[start] = joint.x;
-            _verticesArray[start + 1] = joint.y;
-            _verticesArray[start + 2] = joint.z;
-            _verticesArray[start + 3] = joint.w;
+            vertices[start] = joint.x;
+            vertices[start + 1] = joint.y;
+            vertices[start + 2] = joint.z;
+            vertices[start + 3] = joint.w;
           }
         }
       }
@@ -694,103 +693,103 @@ export class ModelMesh extends Mesh {
     }
 
     if (_tangents) {
-      if (_valueChanged & ValueChanged.Tangent) {
+      if (_vertexChangeFlag & ValueChanged.Tangent) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const tangent = _tangents[i];
           if (tangent) {
-            _verticesArray[start] = tangent.x;
-            _verticesArray[start + 1] = tangent.y;
-            _verticesArray[start + 2] = tangent.z;
+            vertices[start] = tangent.x;
+            vertices[start + 1] = tangent.y;
+            vertices[start + 2] = tangent.z;
           }
         }
       }
       offset += 3;
     }
     if (_uv) {
-      if (_valueChanged & ValueChanged.UV) {
+      if (_vertexChangeFlag & ValueChanged.UV) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv1) {
-      if (_valueChanged & ValueChanged.UV1) {
+      if (_vertexChangeFlag & ValueChanged.UV1) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv1[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv2) {
-      if (_valueChanged & ValueChanged.UV2) {
+      if (_vertexChangeFlag & ValueChanged.UV2) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv2[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv3) {
-      if (_valueChanged & ValueChanged.UV3) {
+      if (_vertexChangeFlag & ValueChanged.UV3) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv3[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv4) {
-      if (_valueChanged & ValueChanged.UV4) {
+      if (_vertexChangeFlag & ValueChanged.UV4) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv4[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv5) {
-      if (_valueChanged & ValueChanged.UV5) {
+      if (_vertexChangeFlag & ValueChanged.UV5) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv5[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv6) {
-      if (_valueChanged & ValueChanged.UV6) {
+      if (_vertexChangeFlag & ValueChanged.UV6) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv6[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
     }
     if (_uv7) {
-      if (_valueChanged & ValueChanged.UV7) {
+      if (_vertexChangeFlag & ValueChanged.UV7) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = elementCount * i + offset;
+          const start = _elementCount * i + offset;
           const uv = _uv7[i];
-          _verticesArray[start] = uv.x;
-          _verticesArray[start + 1] = uv.y;
+          vertices[start] = uv.x;
+          vertices[start + 1] = uv.y;
         }
       }
       offset += 2;
