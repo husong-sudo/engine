@@ -42,9 +42,8 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _weights: Vector4[] | null = null;
   private _joints: Vector4[] | null = null;
-  private _vertexValueChanged: number = 0;
+  private _vertexChangeFlag: number = 0;
   private _elementCount: number = 0;
-
   /**
    * Vertex count of current mesh.
    */
@@ -78,7 +77,8 @@ export class ModelMesh extends Mesh {
       const elementCount = this._elementCount;
       const _verticesArray = new Float32Array(elementCount * this.vertexCount);
       this._verticesArray = _verticesArray;
-      this._resetVertexArrayData(_verticesArray, true);
+      this._vertexChangeFlag = ValueChanged.All;
+      this._resetVertexArrayData(_verticesArray);
       this._vertexBuffer = new Buffer(
         this._engine,
         BufferBindFlag.VertexBuffer,
@@ -188,7 +188,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._normals !== !!normals;
-    this._vertexValueChanged |= ValueChanged.Normal;
+    this._vertexChangeFlag |= ValueChanged.Normal;
     this._normals = normals;
   }
 
@@ -216,7 +216,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._colors !== !!colors;
-    this._vertexValueChanged |= ValueChanged.Color;
+    this._vertexChangeFlag |= ValueChanged.Color;
     this._colors = colors;
   }
 
@@ -244,7 +244,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = weights != null;
-    this._vertexValueChanged |= ValueChanged.Weight;
+    this._vertexChangeFlag |= ValueChanged.Weight;
     this._weights = weights;
   }
 
@@ -272,7 +272,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._joints !== !!joints;
-    this._vertexValueChanged |= ValueChanged.Joint;
+    this._vertexChangeFlag |= ValueChanged.Joint;
     this._joints = joints;
   }
 
@@ -300,7 +300,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._tangents !== !!tangents;
-    this._vertexValueChanged |= ValueChanged.Tangent;
+    this._vertexChangeFlag |= ValueChanged.Tangent;
     this._tangents = tangents;
   }
 
@@ -328,7 +328,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV;
+    this._vertexChangeFlag |= ValueChanged.UV;
     this._uv = uv;
   }
 
@@ -356,7 +356,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv1 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV1;
+    this._vertexChangeFlag |= ValueChanged.UV1;
     this._uv1 = uv;
   }
 
@@ -384,7 +384,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv2 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV2;
+    this._vertexChangeFlag |= ValueChanged.UV2;
     this._uv2 = uv;
   }
 
@@ -412,7 +412,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv3 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV3;
+    this._vertexChangeFlag |= ValueChanged.UV3;
     this._uv3 = uv;
   }
 
@@ -440,7 +440,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv4 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV4;
+    this._vertexChangeFlag |= ValueChanged.UV4;
     this._uv4 = uv;
   }
 
@@ -468,7 +468,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv5 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV5;
+    this._vertexChangeFlag |= ValueChanged.UV5;
     this._uv5 = uv;
   }
 
@@ -496,7 +496,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv6 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV6;
+    this._vertexChangeFlag |= ValueChanged.UV6;
     this._uv6 = uv;
   }
 
@@ -524,7 +524,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._uv7 !== !!uv;
-    this._vertexValueChanged |= ValueChanged.UV7;
+    this._vertexChangeFlag |= ValueChanged.UV7;
     this._uv7 = uv;
   }
 
@@ -613,12 +613,12 @@ export class ModelMesh extends Mesh {
     return vertexElements;
   }
 
-  private _resetVertexArrayData(_verticesArray: Float32Array, allReset: boolean = false) {
+  private _resetVertexArrayData(_verticesArray: Float32Array) {
     // prettier-ignore
-    const { _vertexCount, _positions, _normals, _colors, _vertexValueChanged: _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _vertexCount, _positions, _normals, _colors, _vertexChangeFlag: _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
     const elementCount = this._elementCount;
 
-    if (allReset || _valueChanged & ValueChanged.Position) {
+    if (_valueChanged & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
         const start = elementCount * i;
         const position = _positions[i];
@@ -631,7 +631,7 @@ export class ModelMesh extends Mesh {
     let offset = 3;
 
     if (_normals) {
-      if (allReset || _valueChanged & ValueChanged.Normal) {
+      if (_valueChanged & ValueChanged.Normal) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const normal = _normals[i];
@@ -646,7 +646,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_colors) {
-      if (allReset || _valueChanged & ValueChanged.Color) {
+      if (_valueChanged & ValueChanged.Color) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const color = _colors[i];
@@ -662,7 +662,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_weights) {
-      if (allReset || _valueChanged & ValueChanged.Weight) {
+      if (_valueChanged & ValueChanged.Weight) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const weight = _weights[i];
@@ -678,7 +678,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_joints) {
-      if (allReset || _valueChanged & ValueChanged.Joint) {
+      if (_valueChanged & ValueChanged.Joint) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const joint = _joints[i];
@@ -694,7 +694,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_tangents) {
-      if (allReset || _valueChanged & ValueChanged.Tangent) {
+      if (_valueChanged & ValueChanged.Tangent) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const tangent = _tangents[i];
@@ -708,7 +708,7 @@ export class ModelMesh extends Mesh {
       offset += 3;
     }
     if (_uv) {
-      if (allReset || _valueChanged & ValueChanged.UV) {
+      if (_valueChanged & ValueChanged.UV) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv[i];
@@ -719,7 +719,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv1) {
-      if (allReset || _valueChanged & ValueChanged.UV1) {
+      if (_valueChanged & ValueChanged.UV1) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv1[i];
@@ -730,7 +730,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv2) {
-      if (allReset || _valueChanged & ValueChanged.UV2) {
+      if (_valueChanged & ValueChanged.UV2) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv2[i];
@@ -741,7 +741,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv3) {
-      if (allReset || _valueChanged & ValueChanged.UV3) {
+      if (_valueChanged & ValueChanged.UV3) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv3[i];
@@ -752,7 +752,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv4) {
-      if (allReset || _valueChanged & ValueChanged.UV4) {
+      if (_valueChanged & ValueChanged.UV4) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv4[i];
@@ -763,7 +763,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv5) {
-      if (allReset || _valueChanged & ValueChanged.UV5) {
+      if (_valueChanged & ValueChanged.UV5) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv5[i];
@@ -774,7 +774,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv6) {
-      if (allReset || _valueChanged & ValueChanged.UV6) {
+      if (_valueChanged & ValueChanged.UV6) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv6[i];
@@ -785,7 +785,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv7) {
-      if (allReset || _valueChanged & ValueChanged.UV7) {
+      if (_valueChanged & ValueChanged.UV7) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = elementCount * i + offset;
           const uv = _uv7[i];
@@ -795,7 +795,7 @@ export class ModelMesh extends Mesh {
       }
       offset += 2;
     }
-    this._vertexValueChanged = 0;
+    this._vertexChangeFlag = 0;
   }
 
   private _releaseCache() {
@@ -825,18 +825,19 @@ export class ModelMesh extends Mesh {
 }
 
 enum ValueChanged {
-  Position = 2 ** 0,
-  Normal = 2 ** 1,
-  Color = 2 ** 2,
-  Tangent = 2 ** 3,
-  Weight = 2 ** 4,
-  Joint = 2 ** 5,
-  UV = 2 ** 6,
-  UV1 = 2 ** 7,
-  UV2 = 2 ** 8,
-  UV3 = 2 ** 9,
-  UV4 = 2 ** 10,
-  UV5 = 2 ** 11,
-  UV6 = 2 ** 12,
-  UV7 = 2 ** 13
+  Position = 0x1,
+  Normal = 0x2,
+  Color = 0x4,
+  Tangent = 0x8,
+  Weight = 0x10,
+  Joint = 0x20,
+  UV = 0x40,
+  UV1 = 0x80,
+  UV2 = 0x100,
+  UV3 = 0x200,
+  UV4 = 0x400,
+  UV5 = 0x800,
+  UV6 = 0x1000,
+  UV7 = 0x2000,
+  All = 0xffff
 }
