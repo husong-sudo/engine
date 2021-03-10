@@ -64,23 +64,23 @@ export class ModelMesh extends Mesh {
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadMeshData(noLongerAccessible: boolean): void {
-    const { _indicesArray, _vertexSlotChanged: _vertexSlots, _accessible } = this;
+    const { _indicesArray, _vertexSlotChanged, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
     // Structure of vertex buffer has changed
-    if (_vertexSlots || this._vertexCountChanged) {
+    if (_vertexSlotChanged || this._vertexCountChanged) {
       const vertexElements = this._updateVertexElements();
       const elementCount = this._elementCount;
-      const _verticesArray = new Float32Array(elementCount * this.vertexCount);
-      this._verticesArray = _verticesArray;
+      const vertices = new Float32Array(elementCount * this.vertexCount);
+      this._verticesArray = vertices;
       this._vertexChangeFlag = ValueChanged.All;
-      this._resetVertexArrayData(_verticesArray);
+      this._resetVertexArrayData(vertices);
       this._vertexBuffer = new Buffer(
         this._engine,
         BufferBindFlag.VertexBuffer,
-        _verticesArray,
+        vertices,
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
       this.setVertexElements(vertexElements);
