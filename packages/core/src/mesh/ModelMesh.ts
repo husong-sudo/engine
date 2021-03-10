@@ -1,16 +1,14 @@
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Engine } from "..";
-import {
-  BufferBindFlag,
-  BufferUsage,
-  IndexBufferBinding,
-  IndexFormat,
-  VertexBufferBinding,
-  VertexElement,
-  VertexElementFormat
-} from "../graphic";
 import { Mesh } from "../graphic/Mesh";
 import { Buffer } from "../graphic/Buffer";
+import { Engine } from "../Engine";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { VertexElement } from "../graphic/VertexElement";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 
 const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 
