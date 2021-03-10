@@ -25,7 +25,7 @@ export class ModelMesh extends Mesh {
   private _verticesArray: Float32Array | null = null;
   private _indicesArray: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
-  private _vertexSlots: ModelMeshVertexSlots = new ModelMeshVertexSlots();
+  private _vertexSlotChanged: boolean = false;
   private _vertexCountChanged: boolean = false;
 
   private _positions: Vector3[] = [];
@@ -42,7 +42,8 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _weights: Vector4[] | null = null;
   private _joints: Vector4[] | null = null;
-  private _valueChanged: number = 0;
+  private _vertexValueChanged: number = 0;
+  private _elementCount: number = 0;
 
   /**
    * Vertex count of current mesh.
@@ -63,17 +64,18 @@ export class ModelMesh extends Mesh {
 
   /**
    * Upload Mesh Data to the graphics API.
-   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache).
+   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadMeshData(noLongerAccessible: boolean): void {
-    const { _indicesArray, _vertexSlots, _accessible } = this;
+    const { _indicesArray, _vertexSlotChanged: _vertexSlots, _accessible } = this;
     if (!_accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
     // Structure of vertex buffer has changed
-    if (_vertexSlots.slotChanged || this._vertexCountChanged) {
-      const elementCount = this._getElementCount();
+    if (_vertexSlots || this._vertexCountChanged) {
+      const vertexElements = this._updateVertexElements();
+      const elementCount = this._elementCount;
       const _verticesArray = new Float32Array(elementCount * this.vertexCount);
       this._verticesArray = _verticesArray;
       this._resetVertexArrayData(_verticesArray, true);
@@ -83,9 +85,9 @@ export class ModelMesh extends Mesh {
         _verticesArray,
         noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic
       );
-      this.setVertexElements(this._getVertexElements());
+      this.setVertexElements(vertexElements);
       this.setVertexBufferBinding(new VertexBufferBinding(this._vertexBuffer, elementCount * 4));
-      _vertexSlots.resetSlotChanged();
+      this._vertexSlotChanged = false;
       this._vertexCountChanged = false;
     } else {
       // TODO reset value
@@ -152,7 +154,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    this._vertexSlots.position = true;
+    this._vertexSlotChanged = true;
     const count = positions.length;
     this._positions = positions;
     if (this._vertexCount !== count) {
@@ -184,8 +186,9 @@ export class ModelMesh extends Mesh {
     if (normals.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
-    this._vertexSlots.normal = normals != null;
-    this._valueChanged |= ValueChanged.Normal;
+
+    this._vertexSlotChanged = !!this._normals !== !!normals;
+    this._vertexValueChanged |= ValueChanged.Normal;
     this._normals = normals;
   }
 
@@ -212,8 +215,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.color = colors != null;
-    this._valueChanged |= ValueChanged.Color;
+    this._vertexSlotChanged = !!this._colors !== !!colors;
+    this._vertexValueChanged |= ValueChanged.Color;
     this._colors = colors;
   }
 
@@ -240,8 +243,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.weight = weights != null;
-    this._valueChanged |= ValueChanged.Weight;
+    this._vertexSlotChanged = weights != null;
+    this._vertexValueChanged |= ValueChanged.Weight;
     this._weights = weights;
   }
 
@@ -268,8 +271,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.joint = joints != null;
-    this._valueChanged |= ValueChanged.Joint;
+    this._vertexSlotChanged = !!this._joints !== !!joints;
+    this._vertexValueChanged |= ValueChanged.Joint;
     this._joints = joints;
   }
 
@@ -296,8 +299,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.tangent = tangents != null;
-    this._valueChanged |= ValueChanged.Tangent;
+    this._vertexSlotChanged = !!this._tangents !== !!tangents;
+    this._vertexValueChanged |= ValueChanged.Tangent;
     this._tangents = tangents;
   }
 
@@ -324,8 +327,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv = uv != null;
-    this._valueChanged |= ValueChanged.UV;
+    this._vertexSlotChanged = !!this._uv !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV;
     this._uv = uv;
   }
 
@@ -352,8 +355,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv1 = uv != null;
-    this._valueChanged |= ValueChanged.UV1;
+    this._vertexSlotChanged = !!this._uv1 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV1;
     this._uv1 = uv;
   }
 
@@ -380,8 +383,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv2 = uv != null;
-    this._valueChanged |= ValueChanged.UV2;
+    this._vertexSlotChanged = !!this._uv2 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV2;
     this._uv2 = uv;
   }
 
@@ -408,8 +411,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv3 = uv != null;
-    this._valueChanged |= ValueChanged.UV3;
+    this._vertexSlotChanged = !!this._uv3 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV3;
     this._uv3 = uv;
   }
 
@@ -436,8 +439,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv4 = uv != null;
-    this._valueChanged |= ValueChanged.UV4;
+    this._vertexSlotChanged = !!this._uv4 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV4;
     this._uv4 = uv;
   }
 
@@ -464,8 +467,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv5 = uv != null;
-    this._valueChanged |= ValueChanged.UV5;
+    this._vertexSlotChanged = !!this._uv5 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV5;
     this._uv5 = uv;
   }
 
@@ -492,8 +495,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv6 = uv != null;
-    this._valueChanged |= ValueChanged.UV6;
+    this._vertexSlotChanged = !!this._uv6 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV6;
     this._uv6 = uv;
   }
 
@@ -520,8 +523,8 @@ export class ModelMesh extends Mesh {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
-    this._vertexSlots.uv7 = uv != null;
-    this._valueChanged |= ValueChanged.UV7;
+    this._vertexSlotChanged = !!this._uv7 !== !!uv;
+    this._vertexValueChanged |= ValueChanged.UV7;
     this._uv7 = uv;
   }
 
@@ -535,117 +538,85 @@ export class ModelMesh extends Mesh {
     return this._uv7;
   }
 
-  private _getElementCount(): number {
-    // A ModelMesh must have position;
-    let count = 3;
-    const { _colors, _normals, _uv, _tangents, _weights, _joints, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    if (_normals) {
-      count += 3;
-    }
-
-    if (_colors) {
-      count += 4;
-    }
-    if (_weights) {
-      count += 4;
-    }
-    if (_joints) {
-      count += 4;
-    }
-    if (_tangents) {
-      count += 4;
-    }
-    if (_uv) {
-      count += 2;
-    }
-    if (_uv1) {
-      count += 2;
-    }
-    if (_uv2) {
-      count += 2;
-    }
-    if (_uv3) {
-      count += 2;
-    }
-    if (_uv4) {
-      count += 2;
-    }
-    if (_uv5) {
-      count += 2;
-    }
-    if (_uv6) {
-      count += 2;
-    }
-    if (_uv7) {
-      count += 2;
-    }
-    return count;
-  }
-
-  private _getVertexElements(): VertexElement[] {
+  private _updateVertexElements(): VertexElement[] {
     const vertexElements = [POSITION_VERTEX_ELEMENT];
     const { _colors, _normals, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7, _weights, _joints } = this;
     let offset = 12;
+    let stride = 3;
     if (_normals) {
       vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
       offset += 12;
+      stride += 3;
     }
     if (_colors) {
       vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_weights) {
       vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_joints) {
       vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_tangents) {
       vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
+      stride += 4;
     }
     if (_uv) {
       vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv1) {
       vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv2) {
       vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv3) {
       vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv4) {
       vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv5) {
       vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv6) {
       vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
     if (_uv7) {
       vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
+      stride += 2;
     }
 
+    this._elementCount = stride;
     return vertexElements;
   }
 
   private _resetVertexArrayData(_verticesArray: Float32Array, allReset: boolean = false) {
     // prettier-ignore
-    const { _vertexCount, _positions, _normals, _colors, _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    const elementCount = this._getElementCount();
+    const { _vertexCount, _positions, _normals, _colors, _vertexValueChanged: _valueChanged, _weights, _joints, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const elementCount = this._elementCount;
 
     if (allReset || _valueChanged & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
@@ -824,7 +795,7 @@ export class ModelMesh extends Mesh {
       }
       offset += 2;
     }
-    this._valueChanged = 0;
+    this._vertexValueChanged = 0;
   }
 
   private _releaseCache() {
@@ -850,130 +821,6 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-  }
-}
-
-class ModelMeshVertexSlots {
-  private _position: boolean = false;
-  private _normal: boolean = false;
-  private _slotChanged = false;
-  private _color = false;
-  private _weight = false;
-  private _joint = false;
-  private _tangent = false;
-  private _uv = false;
-  private _uv1 = false;
-  private _uv2 = false;
-  private _uv3 = false;
-  private _uv4 = false;
-  private _uv5 = false;
-  private _uv6 = false;
-  private _uv7 = false;
-
-  get slotChanged(): boolean {
-    return this._slotChanged;
-  }
-
-  set position(value: boolean) {
-    if (value !== this._position) {
-      this._position = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set normal(value: boolean) {
-    if (value !== this._normal) {
-      this._normal = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set color(value: boolean) {
-    if (value !== this._color) {
-      this._color = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set weight(value: boolean) {
-    if (value !== this._weight) {
-      this._weight = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set tangent(value: boolean) {
-    if (value !== this._tangent) {
-      this._tangent = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set joint(value: boolean) {
-    if (value !== this._joint) {
-      this._joint = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv(value: boolean) {
-    if (value !== this._uv) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv1(value: boolean) {
-    if (value !== this._uv1) {
-      this._uv1 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv2(value: boolean) {
-    if (value !== this._uv2) {
-      this._uv2 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv3(value: boolean) {
-    if (value !== this._uv3) {
-      this._uv3 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv4(value: boolean) {
-    if (value !== this._uv4) {
-      this._uv4 = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv5(value: boolean) {
-    if (value !== this._uv5) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv6(value: boolean) {
-    if (value !== this._uv6) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  set uv7(value: boolean) {
-    if (value !== this._uv7) {
-      this._uv = value;
-      this._slotChanged = true;
-    }
-  }
-
-  resetSlotChanged(): void {
-    this._slotChanged = false;
   }
 }
 
